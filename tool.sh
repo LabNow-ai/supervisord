@@ -23,12 +23,9 @@ echo "--------> DOCKER_IMG_NAMESPACE=${IMG_NAMESPACE}"
 echo "--------> DOCKER_IMG_PREFIX=${IMG_PREFIX}"
 echo "--------> DOCKER_TAG_SUFFIX=${TAG_SUFFIX}"
 
-if [ -f /etc/docker/daemon.json ]; then
-       jq '.experimental=true | ."data-root"="/mnt/docker"' /etc/docker/daemon.json > /tmp/daemon.json && sudo mv /tmp/daemon.json /etc/docker/ \
-    && ( sudo service docker restart || true )
-fi
-cat /etc/docker/daemon.json
-docker info
+[ ! -f /etc/docker/daemon.json ] && sudo tee /etc/docker/daemon.json > /dev/null <<< '{}'
+jq '.experimental=true | ."data-root"="/mnt/docker"' /etc/docker/daemon.json > /tmp/daemon.json && sudo mv /tmp/daemon.json /etc/docker/
+( sudo service docker restart || true ) && cat /etc/docker/daemon.json && docker info
 
 build_image() {
     echo "$@" ;
@@ -59,7 +56,7 @@ alias_image() {
 push_image() {
     KEYWORD="${1:-second}";
     docker image prune --force && docker images | sort;
-    IMAGES=$(docker images | grep "${KEYWORD}" | awk '{print $1 ":" $2}') ;
+    IMAGES=$(docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.CreatedSince}}" | grep "${KEYWORD}" | awk '{print $1 ":" $2}') ;
     echo "$DOCKER_REGISTRY_PASSWORD" | docker login "${REGISTRY_URL}" -u "$DOCKER_REGISTRY_USERNAME" --password-stdin ;
     for IMG in $(echo "${IMAGES}" | tr " " "\n") ;
     do
