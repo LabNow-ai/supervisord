@@ -39,8 +39,8 @@ jobs:
 
           build_image_no_tag supervisord "alpine-${VER}" src/supervisord.Dockerfile --build-arg "BASE_NAMESPACE=library" --build-arg "BUILD_IMG=golang:alpine" --build-arg "BASE_IMG=alpine"
           build_image_no_tag supervisord "ubuntu-${VER}" src/supervisord.Dockerfile --build-arg "BASE_NAMESPACE=labnow"    --build-arg "BUILD_IMG=go:latest"     --build-arg "BASE_IMG=ubuntu"
-          docker tag "${IMG_PREFIX}/supervisord:ubuntu-${VER}" "${IMG_PREFIX}/supervisord:ubuntu"
-          docker tag "${IMG_PREFIX}/supervisord:alpine-${VER}" "${IMG_PREFIX}/supervisord:alpine"
+          docker tag "${IMG_PREFIX_DST}/supervisord:ubuntu-${VER}" "${IMG_PREFIX_DST}/supervisord:ubuntu"
+          docker tag "${IMG_PREFIX_DST}/supervisord:alpine-${VER}" "${IMG_PREFIX_DST}/supervisord:alpine"
           push_image supervisord
 
   build_binary:
