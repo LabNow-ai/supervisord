@@ -5,8 +5,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"supervisord/types"
+
+	"github.com/gorilla/mux"
 )
 
 // SupervisorRestful the restful interface to control the programs defined in configuration file

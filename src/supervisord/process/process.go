@@ -15,13 +15,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ochinchina/filechangemonitor"
-	"github.com/robfig/cron/v3"
-	log "github.com/sirupsen/logrus"
 	"supervisord/config"
 	"supervisord/events"
 	"supervisord/logger"
 	"supervisord/signals"
+
+	"github.com/mitchellh/go-ps"
+	"github.com/ochinchina/filechangemonitor"
+	"github.com/robfig/cron/v3"
+	log "github.com/sirupsen/logrus"
 )
 
 // State the state of process
@@ -162,8 +164,8 @@ func (p *Process) Start(wait bool) {
 	}
 
 	go func() {
-
 		for {
+			// we'll do retry start if it sets.
 			p.run(func() {
 				if wait {
 					runCond.L.Lock()
@@ -176,7 +178,7 @@ func (p *Process) Start(wait bool) {
 				time.Sleep(5 * time.Second)
 			}
 			if p.stopByUser {
-				log.WithFields(log.Fields{"program": p.GetName()}).Info("Stopped by user, don't start it again")
+				log.WithFields(log.Fields{"program": p.GetName()}).Info("program stopped by user, don't start it again")
 				break
 			}
 			if !p.isAutoRestart() {
@@ -225,7 +227,9 @@ func (p *Process) GetDescription() string {
 		}
 		return fmt.Sprintf("pid %d, uptime %d:%02d:%02d", p.cmd.Process.Pid, hours%24, minutes%60, seconds%60)
 	} else if p.state != Stopped {
-		return p.stopTime.String()
+		if p.stopTime.Unix() > 0 {
+			return p.stopTime.String()
+		}
 	}
 	return ""
 }
@@ -396,7 +400,7 @@ func (p *Process) getExitCodes() []int {
 func (p *Process) isRunning() bool {
 	if p.cmd != nil && p.cmd.Process != nil {
 		if runtime.GOOS == "windows" {
-			proc, err := os.FindProcess(p.cmd.Process.Pid)
+			proc, err := ps.FindProcess(p.cmd.Process.Pid)
 			return proc != nil && err == nil
 		}
 		return p.cmd.Process.Signal(syscall.Signal(0)) == nil
@@ -496,6 +500,16 @@ func (p *Process) waitForExit(startSecs int64) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	p.stopTime = time.Now()
+
+	// FIXME: we didn't set eventlistener logger
+	// since it's stdout/stderr has been specifically managed.
+	if p.StdoutLog != nil {
+		p.StdoutLog.Close()
+	}
+	if p.StderrLog != nil {
+		p.StderrLog.Close()
+	}
+
 }
 
 // fail to start the program
@@ -522,6 +536,13 @@ func (p *Process) monitorProgramIsRunning(endTime time.Time, monitorExited *int3
 	}
 }
 
+// 这个函数可能有以下几种执行完成的情况：
+//
+// 1. 程序正在运行中，因此函数直接返回。
+// 2. 程序尚未运行，函数开始尝试多次启动程序，直到启动成功。
+// 3. 程序成功启动并正在运行中，函数启动了一个后台监视程序来监视程序运行情况，并向 `finishCb` 函数传递一个标记告知程序已停止，函数直接返回。
+// 4. 程序启动失败，超出了尝试次数，函数将程序状态标记为 `FATAL`，并向 `finishCb` 函数传递一个标记告知程序已停止，函数直接返回。
+// 5. 程序被终止或运行失败，超出了重试次数，函数将程序状态标记为 `EXITED`，并向 `finishCb` 函数传递一个标记告知程序已停止，函数直接返回。
 func (p *Process) run(finishCb func()) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -531,8 +552,8 @@ func (p *Process) run(finishCb func()) {
 		log.WithFields(log.Fields{"program": p.GetName()}).Info("Don't start program because it is running")
 		finishCb()
 		return
-
 	}
+
 	p.startTime = time.Now()
 	atomic.StoreInt32(p.retryTimes, 0)
 	startSecs := p.getStartSeconds()
@@ -543,7 +564,8 @@ func (p *Process) run(finishCb func()) {
 	finishCbWrapper := func() {
 		once.Do(finishCb)
 	}
-	// process is not expired and not stoped by user
+
+	//process is not expired and not stoped by user
 	for !p.stopByUser {
 		if restartPause > 0 && atomic.LoadInt32(p.retryTimes) != 0 {
 			// pause
@@ -607,6 +629,7 @@ func (p *Process) run(finishCb func()) {
 		// Set startsec to 0 to indicate that the program needn't stay
 		// running for any particular amount of time.
 		if startSecs <= 0 {
+			atomic.StoreInt32(&monitorExited, 1)
 			log.WithFields(log.Fields{"program": p.GetName()}).Info("success to start program")
 			p.changeStateTo(Running)
 			go finishCbWrapper()
@@ -616,7 +639,7 @@ func (p *Process) run(finishCb func()) {
 				finishCbWrapper()
 			}()
 		}
-		log.WithFields(log.Fields{"program": p.GetName()}).Debug("wait program exit")
+		log.WithFields(log.Fields{"program": p.GetName()}).Debug("check program is starting and wait if it exit")
 		p.lock.Unlock()
 
 		procExitC := make(chan struct{})
@@ -646,10 +669,17 @@ func (p *Process) run(finishCb func()) {
 
 		p.lock.Lock()
 
-		// if the program still in running after startSecs
-		if p.state == Running {
-			p.changeStateTo(Exited)
-			log.WithFields(log.Fields{"program": p.GetName()}).Info("program exited")
+		// we break the restartRetry loop if:
+		// 1. process still in running after startSecs (although it's exited right now)
+		// 2. it's stopping by user (we unlocked before waitForExit, so the flag stopByUser will have a chance to change).
+		if p.state == Running || p.state == Stopping {
+			if !p.stopByUser {
+				p.changeStateTo(Exited)
+				log.WithFields(log.Fields{"program": p.GetName()}).Info("program exited")
+			} else {
+				p.changeStateTo(Stopped)
+				log.WithFields(log.Fields{"program": p.GetName()}).Info("program stopped by user")
+			}
 			break
 		} else {
 			p.changeStateTo(Backoff)
@@ -742,10 +772,35 @@ func (p *Process) setEnv() {
 	envFromFiles := p.config.GetEnvFromFiles("envFiles")
 	env := p.config.GetEnv("environment")
 	if len(env)+len(envFromFiles) != 0 {
-		p.cmd.Env = append(append(os.Environ(), envFromFiles...), env...)
+		p.cmd.Env = mergeKeyValueArrays(p.cmd.Env, append(append(os.Environ(), envFromFiles...), env...))
 	} else {
-		p.cmd.Env = os.Environ()
+		p.cmd.Env = mergeKeyValueArrays(p.cmd.Env, os.Environ())
 	}
+}
+
+// 辅助函数：带覆盖的环境变量追加
+func mergeKeyValueArrays(arr1, arr2 []string) []string {
+	keySet := make(map[string]bool)
+	result := make([]string, 0, len(arr1)+len(arr2))
+
+	// 处理第一个数组，保留所有元素
+	for _, item := range arr1 {
+		if key := strings.SplitN(item, "=", 2)[0]; key != "" {
+			keySet[key] = true
+		}
+		result = append(result, item)
+	}
+
+	// 处理第二个数组，跳过已存在的键
+	for _, item := range arr2 {
+		if key := strings.SplitN(item, "=", 2)[0]; key != "" {
+			if !keySet[key] {
+				result = append(result, item)
+			}
+		}
+	}
+
+	return result
 }
 
 func (p *Process) setDir() {
@@ -929,7 +984,66 @@ func (p *Process) setUser() error {
 		}
 	}
 	setUserID(p.cmd.SysProcAttr, uint32(uid), uint32(gid))
+
+	// 强制设置关键环境变量
+	p.cmd.Env = appendEnvWithOverride(p.cmd.Env,
+		"HOME", u.HomeDir, // 强制HOME目录
+		"USER", u.Username, // 用户名
+		"LOGNAME", u.Username, // 登录名
+		"PATH", defaultPath(u), // 安全PATH
+	)
+
+	// 删除root残留的环境变量
+	filterRootEnv(&p.cmd.Env)
+
 	return nil
+}
+
+// 辅助函数：带覆盖的环境变量追加
+func appendEnvWithOverride(env []string, pairs ...string) []string {
+	newEnv := make([]string, 0, len(env)+len(pairs)/2)
+	set := make(map[string]bool)
+
+	// 先添加新变量
+	for i := 0; i < len(pairs); i += 2 {
+		key := pairs[i]
+		value := pairs[i+1]
+		newEnv = append(newEnv, fmt.Sprintf("%s=%s", key, value))
+		set[key] = true
+	}
+
+	// 保留未覆盖的旧变量
+	for _, e := range env {
+		parts := strings.SplitN(e, "=", 2)
+		if len(parts) < 2 || set[parts[0]] {
+			continue
+		}
+		newEnv = append(newEnv, e)
+	}
+
+	return newEnv
+}
+
+// 辅助函数：生成安全PATH
+func defaultPath(u *user.User) string {
+	// 根据用户类型返回不同PATH
+	if u.Uid == "0" {
+		return "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+	}
+	return "/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games"
+}
+
+// 辅助函数：过滤危险的环境变量
+func filterRootEnv(env *[]string) {
+	filtered := make([]string, 0, len(*env))
+	for _, e := range *env {
+		if strings.HasPrefix(e, "SUDO_") ||
+			strings.HasPrefix(e, "XDG_RUNTIME_DIR=") {
+			continue
+		}
+		filtered = append(filtered, e)
+	}
+	*env = filtered
 }
 
 // Stop sends signal to process to make it quit
@@ -942,8 +1056,10 @@ func (p *Process) Stop(wait bool) {
 		log.WithFields(log.Fields{"program": p.GetName()}).Info("program is not running")
 		return
 	}
-	log.WithFields(log.Fields{"program": p.GetName()}).Info("stop the program")
-	sigs := strings.Fields(p.config.GetString("stopsignal", "SIGTERM"))
+
+	log.WithFields(log.Fields{"program": p.GetName()}).Info("stopping the program")
+	p.changeStateTo(Stopping)
+	sigs := strings.Fields(p.config.GetString("stopsignal", "TERM"))
 	waitsecs := time.Duration(p.config.GetInt("stopwaitsecs", 10)) * time.Second
 	killwaitsecs := time.Duration(p.config.GetInt("killwaitsecs", 2)) * time.Second
 	stopasgroup := p.config.GetBool("stopasgroup", false)
@@ -997,6 +1113,9 @@ func (p *Process) Stop(wait bool) {
 
 // GetStatus returns status of program as a string
 func (p *Process) GetStatus() string {
+	if p.cmd.ProcessState == nil {
+		return "<nil>"
+	}
 	if p.cmd.ProcessState.Exited() {
 		return p.cmd.ProcessState.String()
 	}
