@@ -11,12 +11,15 @@ import (
 	"syscall"
 	"unicode"
 
+	"supervisord/config"
+	"supervisord/logger"
+
 	"github.com/jessevdk/go-flags"
 	"github.com/ochinchina/go-ini"
 	log "github.com/sirupsen/logrus"
-	"supervisord/config"
-	"supervisord/logger"
 )
+
+var BuildVersion string = ""
 
 // Options the command line options
 type Options struct {
@@ -111,7 +114,8 @@ func findSupervisordConf() (string, error) {
 		"/etc/supervisord.conf",
 		"/etc/supervisor/supervisord.conf",
 		"../etc/supervisord.conf",
-		"../supervisord.conf"}
+		"../supervisord.conf",
+		"./supervisord.conf"}
 
 	for _, file := range possibleSupervisordConf {
 		if _, err := os.Stat(file); err == nil {
@@ -162,6 +166,9 @@ func getSupervisordLogFile(configFile string) string {
 }
 
 func main() {
+	if BuildVersion != "" {
+		VERSION = BuildVersion
+	}
 	ReapZombie()
 
 	// when execute `supervisord` without sub-command, it should start the server

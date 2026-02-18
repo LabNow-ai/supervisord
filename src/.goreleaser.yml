@@ -91,7 +91,7 @@ snapshot:
 
 release:
   github:
-    owner: QPod
+    owner: LabNow-ai
     name: supervisord
   draft: true
   prerelease: auto

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-var procs = NewManager()
+var procs *Manager = NewManager()
 
 func TestProcessMgrAdd(t *testing.T) {
 	entry := &config.Entry{ConfigDir: ".", Group: "test", Name: "program:test1"}
