@@ -1,6 +1,6 @@
 # Go Implementation of Supervisord
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/QPod/supervisord)](https://goreportcard.com/report/github.com/QPod/supervisord)
+[![Go Report Card](https://goreportcard.com/badge/github.com/LabNow-ai/supervisord)](https://goreportcard.com/report/github.com/LabNow-ai/supervisord)
 
 ## Why this project?
 
@@ -10,12 +10,12 @@ This project re-implements supervisord in golang. Compiled `supervisord` has a v
 
 ## Download the supervisord binary
 
-You can download the binary of supervisord from the [GitHub Release page](https://github.com/QPod/supervisord/releases/), or use the following command.
+You can download the binary of supervisord from the [GitHub Release page](https://github.com/LabNow-ai/supervisord/releases/), or use the following command.
 
 ```shell
    OS="linux" && ARCH="amd64" \
-&& VER_SUPERVISORD=$(curl -sL https://github.com/QPod/supervisord/releases.atom | grep "releases/tag" | head -1 | grep -Po '(\d[\d|.]+)') \
-&& URL_SUPERVISORD="https://github.com/QPod/supervisord/releases/download/v${VER_SUPERVISORD}/supervisord_${VER_SUPERVISORD}_${OS}_${ARCH}.tar.gz" \
+&& VER_SUPERVISORD=$(curl -sL https://github.com/LabNow-ai/supervisord/releases.atom | grep "releases/tag" | head -1 | grep -Po '(\d[\d|.]+)') \
+&& URL_SUPERVISORD="https://github.com/LabNow-ai/supervisord/releases/download/v${VER_SUPERVISORD}/supervisord_${VER_SUPERVISORD}_${OS}_${ARCH}.tar.gz" \
 && echo "Downloading Supervisord ${VER_SUPERVISORD} from ${URL_SUPERVISORD}" \
 && curl -o /tmp/TMP.tgz -sL $URL_SUPERVISORD && tar -C ./ -xzf /tmp/TMP.tgz && rm /tmp/TMP.tgz \
 && ./supervisord version

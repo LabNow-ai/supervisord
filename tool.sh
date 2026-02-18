@@ -33,6 +33,12 @@ build_image() {
     docker tag "${IMG_PREFIX_DST}/${IMG}:${TAG}" "${IMG_PREFIX_DST}/${IMG}:${VER}" ;
 }
 
+build_image_no_tag() {
+    echo "$@" ;
+    IMG=$1; TAG=$2; FILE=$3; shift 3; WORKDIR="$(pwd)";
+    docker build --compress --force-rm=true -t "${IMG_PREFIX_DST}/${IMG}:${TAG}" -f "$FILE" --build-arg "BASE_NAMESPACE=${SRC_NAMESPACE}" "$@" "${WORKDIR}" ;
+}
+
 push_image() {
     KEYWORD="${1:-second}";
     docker image prune --force && docker images | sort;

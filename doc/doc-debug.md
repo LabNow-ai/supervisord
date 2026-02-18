@@ -9,7 +9,7 @@ docker run --rm -it \
   -p 10080:80 \
   -v $(pwd):/data \
   --entrypoint=/bin/bash \
-  qpod/supervisord:ubuntu
+  labnow/supervisord:ubuntu
 
 
 mkdir -pv /var/log/supervisord
