@@ -8,6 +8,7 @@ require (
 	github.com/hashicorp/go-envparse v0.1.0
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/kardianos/service v1.2.1
+	github.com/mitchellh/go-ps v1.0.0
 	github.com/ochinchina/filechangemonitor v0.3.1
 	github.com/ochinchina/go-daemon v0.1.5
 	github.com/ochinchina/go-ini v1.0.1

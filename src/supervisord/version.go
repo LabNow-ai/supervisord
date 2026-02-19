@@ -8,7 +8,7 @@ import (
 
 var (
 	VERSION = "v0.0.0"
-	COMMIT  = ""
+	COMMIT  = "GIT_COMMIT_ID"
 )
 
 // VersionCommand implement the flags.Commander interface
