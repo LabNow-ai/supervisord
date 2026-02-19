@@ -23,6 +23,7 @@ env:
   DOCKER_MIRROR_REGISTRY_USERNAME: ${{ vars.DOCKER_MIRROR_REGISTRY_USERNAME }}
   DOCKER_MIRROR_REGISTRY_PASSWORD: ${{ secrets.DOCKER_MIRROR_REGISTRY_PASSWORD }}
   CI_PROJECT_NAME: ${{ vars.CI_PROJECT_NAME || 'LabNow/supervisord' }}
+  COMMIT_SHA: ${{ github.sha }} # COMMIT_SHA="$(git rev-parse --short HEAD)"
 
 jobs:
   build_docker_image:
@@ -35,7 +36,7 @@ jobs:
           VER=$(date +%Y.%m%d.%H%M)${TAG_SUFFIX};
 
           export VERSION=$( [[ "$GITHUB_REF" == refs/tags/* ]] && echo "${GITHUB_REF#refs/tags/}" || echo $(date +%Y.%m%d.%H%M) )
-          sed -i -E "s/v[0-9]+\.[0-9]+\.[0-9]+/${VERSION}/" "src/supervisord/version.go"
+          sed -i -E -e "s/v[0-9]+\.[0-9]+\.[0-9]+/${VERSION}/" -e "s/GIT_COMMIT_ID/${COMMIT_SHA}/" src/supervisord/version.go
 
           build_image_no_tag supervisord "alpine-${VER}" src/supervisord.Dockerfile --build-arg "BASE_NAMESPACE=library" --build-arg "BUILD_IMG=golang:alpine" --build-arg "BASE_IMG=alpine"
           build_image_no_tag supervisord "ubuntu-${VER}" src/supervisord.Dockerfile --build-arg "BASE_NAMESPACE=labnow"    --build-arg "BUILD_IMG=go:latest"     --build-arg "BASE_IMG=ubuntu"
@@ -56,7 +57,7 @@ jobs:
           set -eux
 
           export VERSION=$( [[ "$GITHUB_REF" == refs/tags/* ]] && echo "${GITHUB_REF#refs/tags/}" || echo $(date +%Y.%m%d.%H%M) )
-          sed -i -E "s/v[0-9]+\.[0-9]+\.[0-9]+/${VERSION}/" "src/supervisord/version.go"
+          sed -i -E -e "s/v[0-9]+\.[0-9]+\.[0-9]+/${VERSION}/" -e "s/GIT_COMMIT_ID/${COMMIT_SHA}/" src/supervisord/version.go
 
           pwd && ls -alh *
           mkdir -pv build && mv src/etc src/webgui ./build/
@@ -90,7 +91,7 @@ jobs:
           upx --version | grep -E '^upx'
 
           export VERSION=$( [[ "$GITHUB_REF" == refs/tags/* ]] && echo "${GITHUB_REF#refs/tags/}" || echo $(date +%Y.%m%d.%H%M) )
-          sed -i -E "s/v[0-9]+\.[0-9]+\.[0-9]+/${VERSION}/" "src/supervisord/version.go"
+          sed -i -E -e "s/v[0-9]+\.[0-9]+\.[0-9]+/${VERSION}/" -e "s/GIT_COMMIT_ID/${COMMIT_SHA}/" src/supervisord/version.go
           cd src/supervisord && go mod tidy -e
 
       - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}  # if not on a `tags/v*` git push, add `--snapshot` to flags
