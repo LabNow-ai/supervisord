@@ -1,0 +1,32 @@
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+    groups:
+      all-github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/src"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+    groups:
+      all-docker:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "go-mod"
+    directory: "/src"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+    groups:
+      all-go-mod:
+        patterns:
+          - "*"
