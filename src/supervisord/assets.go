@@ -74,7 +74,7 @@ func newZipFS(r *zip.Reader) *zipFS {
             continue
         }
         z.files[name] = f
-        // populate parent directories
+        // populate parent directories with direct child entries only
         dir := path.Dir(name)
         if dir == "." {
             dir = ""

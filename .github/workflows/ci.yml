@@ -29,7 +29,7 @@ jobs:
   build_docker_image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build Docker
         run: |
           source ./tool.sh
@@ -39,7 +39,7 @@ jobs:
           sed -i -E -e "s/v[0-9]+\.[0-9]+\.[0-9]+/${VERSION}/" -e "s/GIT_COMMIT_ID/${COMMIT_SHA}/" src/supervisord/version.go
 
           build_image_no_tag supervisord "alpine-${VER}" src/supervisord.Dockerfile --build-arg "BASE_NAMESPACE=library" --build-arg "BUILD_IMG=golang:alpine" --build-arg "BASE_IMG=alpine"
-          build_image_no_tag supervisord "ubuntu-${VER}" src/supervisord.Dockerfile --build-arg "BASE_NAMESPACE=labnow"    --build-arg "BUILD_IMG=go:latest"     --build-arg "BASE_IMG=ubuntu"
+          build_image_no_tag supervisord "ubuntu-${VER}" src/supervisord.Dockerfile --build-arg "BASE_NAMESPACE=labnow"  --build-arg "BUILD_IMG=go:latest"     --build-arg "BASE_IMG=ubuntu"
           docker tag "${IMG_PREFIX_DST}/supervisord:ubuntu-${VER}" "${IMG_PREFIX_DST}/supervisord:ubuntu"
           docker tag "${IMG_PREFIX_DST}/supervisord:alpine-${VER}" "${IMG_PREFIX_DST}/supervisord:alpine"
           push_image supervisord
@@ -47,11 +47,11 @@ jobs:
   build_binary:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.26
+          go-version: "stable" # 1.26
       - name: Build Binary
         run: |
           set -eux
@@ -70,11 +70,11 @@ jobs:
   build_goreleaser:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.26
+          go-version: "stable" # 1.26
 
       - name: Install cross-compiler for linux/arm64, UPX
         env:

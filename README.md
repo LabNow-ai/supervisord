@@ -1,6 +1,16 @@
 # Go Implementation of Supervisord
 
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT-Clause)
 [![Go Report Card](https://goreportcard.com/badge/github.com/LabNow-ai/supervisord)](https://goreportcard.com/report/github.com/LabNow-ai/supervisord)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/LabNow-ai/supervisord/ci.yml?branch=main)](https://github.com/LabNow-ai/supervisord/actions/workflows/ci.yml)
+[![Recent Code Update](https://img.shields.io/github/last-commit/LabNow-ai/supervisord.svg)](https://github.com/LabNow-ai/supervisord/stargazers)
+[![Visit Images on DockerHub](https://img.shields.io/badge/DockerHub-Images-green)](https://hub.docker.com/u/labnow)
+
+Please generously STAR★ our project or donate to us!  [![GitHub Starts](https://img.shields.io/github/stars/LabNow-ai/supervisord.svg?label=Stars)](https://github.com/LabNow-ai/supervisord/stargazers)
+
+Discussion and contributions are welcome:
+[![Join the Discord Chat](https://img.shields.io/badge/Discuss_on-Discord-green)](https://discord.gg/kHUzgQxgbJ)
+[![Open an Issue on GitHub](https://img.shields.io/github/issues/LabNow-ai/supervisord)](https://github.com/LabNow-ai/supervisord/issues)
 
 ## Why this project?
 
