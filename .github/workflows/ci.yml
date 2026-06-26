@@ -4,12 +4,17 @@ on:
   push:
     branches: [ main ]
     tags: [ "v*" ]
-
   pull_request:
     branches: [ "main" ]
     paths-ignore: [ "*.md" ]
-
   workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -29,7 +34,7 @@ jobs:
   build_docker_image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Build Docker
         run: |
           source ./tool.sh
@@ -47,7 +52,7 @@ jobs:
   build_binary:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -70,7 +75,7 @@ jobs:
   build_goreleaser:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -78,7 +83,7 @@ jobs:
 
       - name: Install cross-compiler for linux/arm64, UPX
         env:
-          VER_UPX: "4.2.4"
+          VER_UPX: "5.2.0"
         run: |
           set -eux
           sudo apt-get update -q && sudo apt-get -y install gcc-aarch64-linux-gnu ;
