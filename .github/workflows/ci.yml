@@ -4,12 +4,17 @@ on:
   push:
     branches: [ main ]
     tags: [ "v*" ]
-
   pull_request:
     branches: [ "main" ]
     paths-ignore: [ "*.md" ]
-
   workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -29,7 +34,7 @@ jobs:
   build_docker_image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Build Docker
         run: |
           source ./tool.sh
@@ -47,7 +52,7 @@ jobs:
   build_binary:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -70,29 +75,28 @@ jobs:
   build_goreleaser:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - name: Set up Go
-        uses: actions/setup-go@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
         with:
           go-version: "stable" # 1.26
 
       - name: Install cross-compiler for linux/arm64, UPX
         env:
-          VER_UPX: "4.2.4"
+          VER_UPX: "5.2.0"
         run: |
           set -eux
+          
           sudo apt-get update -q && sudo apt-get -y install gcc-aarch64-linux-gnu ;
-
           URL_UPX="https://github.com/upx/upx/releases/download/v${VER_UPX}/upx-${VER_UPX}-amd64_linux.tar.xz" ;
           echo "Installing upx ${VER_UPX} from: ${URL_UPX}" ;
           curl -o /tmp/TMP.txz -sL $URL_UPX && tar -C /opt/ -xJf /tmp/TMP.txz && rm /tmp/TMP.txz ;
           ln -sf /opt/upx-${VER_UPX}-amd64_linux /opt/upx
-          export PATH="/opt/upx/:${PATH}"
-          upx --version | grep -E '^upx'
+          export PATH="/opt/upx/:${PATH}" && upx --version | grep -E '^upx'
+          echo "/opt/upx" >> $GITHUB_PATH
 
           export VERSION=$( [[ "$GITHUB_REF" == refs/tags/* ]] && echo "${GITHUB_REF#refs/tags/}" || echo $(date +%Y.%m%d.%H%M) )
           sed -i -E -e "s/v[0-9]+\.[0-9]+\.[0-9]+/${VERSION}/" -e "s/GIT_COMMIT_ID/${COMMIT_SHA}/" src/supervisord/version.go
-          cd src/supervisord && go mod tidy -e
+          cd src/supervisord && go mod tidy -e && go test -v
 
       - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}  # if not on a `tags/v*` git push, add `--snapshot` to flags
         run: echo "flags=--snapshot" >> $GITHUB_ENV
@@ -106,5 +110,5 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --verbose --clean ${{ env.flags }}
+          args: release --verbose --clean -f ../.goreleaser.yml ${{ env.flags }}
           workdir: src/supervisord
