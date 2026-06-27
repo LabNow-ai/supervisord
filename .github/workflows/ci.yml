@@ -95,7 +95,7 @@ jobs:
           curl -o /tmp/TMP.txz -sL $URL_UPX && tar -C /opt/ -xJf /tmp/TMP.txz && rm /tmp/TMP.txz ;
           ln -sf /opt/upx-${VER_UPX}-amd64_linux /opt/upx
           export PATH="/opt/upx/:${PATH}" && upx --version | grep -E '^upx'
-          echo "/opt/upx" >> $GITHUB_PATH
+          # echo "/opt/upx" >> $GITHUB_PATH
 
           export VERSION=$( [[ "$GITHUB_REF" == refs/tags/* ]] && echo "${GITHUB_REF#refs/tags/}" || echo $(date +%Y.%m%d.%H%M) )
           sed -i -E -e "s/v[0-9]+\.[0-9]+\.[0-9]+/${VERSION}/" -e "s/GIT_COMMIT_ID/${COMMIT_SHA}/" src/supervisord/version.go
@@ -116,9 +116,9 @@ jobs:
           args: release --verbose --clean -f ../.goreleaser.yml ${{ env.flags }}
           workdir: src/supervisord
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: supervisord-binaries
           path: src/supervisord/dist/
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 2
