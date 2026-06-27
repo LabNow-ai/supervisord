@@ -50,9 +50,6 @@ builds:
         goarch: arm64
         env:
           - CC=aarch64-linux-gnu-gcc
-    hooks:
-      post:
-        - cmd: upx "{{ .Path }}"
 
 archives:
   - id: archive_multi
@@ -96,3 +93,8 @@ release:
   draft: true
   prerelease: auto
   name_template: "{{.ProjectName}}-v{{.Version}}"
+
+upx:
+  - enabled: true
+    ids:
+      - static

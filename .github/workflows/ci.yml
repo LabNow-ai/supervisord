@@ -76,7 +76,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version: "stable" # 1.26
@@ -92,6 +91,7 @@ jobs:
           echo "Installing upx ${VER_UPX} from: ${URL_UPX}" ;
           curl -o /tmp/TMP.txz -sL $URL_UPX && tar -C /opt/ -xJf /tmp/TMP.txz && rm /tmp/TMP.txz ;
           ln -sf /opt/upx-${VER_UPX}-amd64_linux /opt/upx
+          echo "/opt/upx" >> $GITHUB_PATH
           export PATH="/opt/upx/:${PATH}"
           upx --version | grep -E '^upx'
 
