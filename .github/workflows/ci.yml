@@ -115,3 +115,10 @@ jobs:
           version: latest
           args: release --verbose --clean -f ../.goreleaser.yml ${{ env.flags }}
           workdir: src/supervisord
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: supervisord-binaries
+          path: src/supervisord/dist/
+          if-no-files-found: error
+          retention-days: 7
