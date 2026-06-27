@@ -1,6 +1,6 @@
 # Go Implementation of Supervisord
 
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT-Clause)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/LabNow-ai/supervisord/blob/main/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/LabNow-ai/supervisord)](https://goreportcard.com/report/github.com/LabNow-ai/supervisord)
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/LabNow-ai/supervisord/ci.yml?branch=main)](https://github.com/LabNow-ai/supervisord/actions/workflows/ci.yml)
 [![Recent Code Update](https://img.shields.io/github/last-commit/LabNow-ai/supervisord.svg)](https://github.com/LabNow-ai/supervisord/stargazers)
