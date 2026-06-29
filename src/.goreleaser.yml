@@ -57,7 +57,7 @@ archives:
     builds: [dynamic]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{- if .Arm }}v{{ .Arm }}{{ end }}"
     format: tar.gz
-    wrap_in_directory: true
+    wrap_in_directory: false
     files:
       - none*
 
@@ -65,7 +65,7 @@ archives:
     builds: [static]
     name_template: "{{ .ProjectName }}_static_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{- if .Arm }}v{{ .Arm }}{{ end }}"
     format: tar.gz
-    wrap_in_directory: true
+    wrap_in_directory: false
     files:
       - none*
 
