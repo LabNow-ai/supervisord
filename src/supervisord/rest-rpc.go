@@ -29,6 +29,13 @@ func (sr *SupervisorRestful) CreateProgramHandler() http.Handler {
 	sr.router.HandleFunc("/program/log/{name}/stdout", sr.ReadStdoutLog).Methods("GET")
 	sr.router.HandleFunc("/program/startPrograms", sr.StartPrograms).Methods("POST", "PUT")
 	sr.router.HandleFunc("/program/stopPrograms", sr.StopPrograms).Methods("POST", "PUT")
+	// Group operations
+	sr.router.HandleFunc("/program/startGroup/{name}", sr.StartProcessGroup).Methods("POST", "PUT")
+	sr.router.HandleFunc("/program/stopGroup/{name}", sr.StopProcessGroup).Methods("POST", "PUT")
+	// Signal operations
+	sr.router.HandleFunc("/program/signal/{name}/{signal}", sr.SignalProcess).Methods("POST", "PUT")
+	sr.router.HandleFunc("/program/signalGroup/{name}/{signal}", sr.SignalProcessGroup).Methods("POST", "PUT")
+	sr.router.HandleFunc("/program/signalAll/{signal}", sr.SignalAllProcesses).Methods("POST", "PUT")
 	return sr.router
 }
 
@@ -155,4 +162,83 @@ func (sr *SupervisorRestful) Reload(w http.ResponseWriter, req *http.Request) {
 	sr.supervisor.Reload(false)
 	r := map[string]bool{"success": reply.Ret}
 	json.NewEncoder(w).Encode(&r)
+}
+
+// StartProcessGroup start all processes in one group through restful interface
+func (sr *SupervisorRestful) StartProcessGroup(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
+	params := mux.Vars(req)
+	args := StartProcessArgs{Name: params["name"], Wait: true}
+	reply := struct{ AllProcessInfo []types.ProcessInfo }{make([]types.ProcessInfo, 0)}
+	err := sr.supervisor.StartProcessGroup(req, &args, &reply)
+	if err == nil {
+		json.NewEncoder(w).Encode(reply.AllProcessInfo)
+	} else {
+		r := map[string]interface{}{"success": false, "error": err.Error()}
+		json.NewEncoder(w).Encode(r)
+	}
+}
+
+// StopProcessGroup stop all processes in one group through restful interface
+func (sr *SupervisorRestful) StopProcessGroup(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
+	params := mux.Vars(req)
+	args := StartProcessArgs{Name: params["name"], Wait: true}
+	reply := struct{ AllProcessInfo []types.ProcessInfo }{make([]types.ProcessInfo, 0)}
+	err := sr.supervisor.StopProcessGroup(req, &args, &reply)
+	if err == nil {
+		json.NewEncoder(w).Encode(reply.AllProcessInfo)
+	} else {
+		r := map[string]interface{}{"success": false, "error": err.Error()}
+		json.NewEncoder(w).Encode(r)
+	}
+}
+
+// SignalProcess send a signal to running program through restful interface
+func (sr *SupervisorRestful) SignalProcess(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
+	params := mux.Vars(req)
+	args := types.ProcessSignal{Name: params["name"], Signal: params["signal"]}
+	reply := struct{ Success bool }{false}
+	err := sr.supervisor.SignalProcess(req, &args, &reply)
+	r := map[string]interface{}{"success": err == nil && reply.Success}
+	if err != nil {
+		r["error"] = err.Error()
+	}
+	json.NewEncoder(w).Encode(r)
+}
+
+// SignalProcessGroup send signal to all processes in one group through restful interface
+func (sr *SupervisorRestful) SignalProcessGroup(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
+	params := mux.Vars(req)
+	args := types.ProcessSignal{Name: params["name"], Signal: params["signal"]}
+	reply := struct{ AllProcessInfo []types.ProcessInfo }{make([]types.ProcessInfo, 0)}
+	err := sr.supervisor.SignalProcessGroup(req, &args, &reply)
+	if err == nil {
+		json.NewEncoder(w).Encode(reply.AllProcessInfo)
+	} else {
+		r := map[string]interface{}{"success": false, "error": err.Error()}
+		json.NewEncoder(w).Encode(r)
+	}
+}
+
+// SignalAllProcesses send signal to all processes through restful interface
+func (sr *SupervisorRestful) SignalAllProcesses(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
+	params := mux.Vars(req)
+	args := types.ProcessSignal{Name: "", Signal: params["signal"]}
+	reply := struct{ AllProcessInfo []types.ProcessInfo }{make([]types.ProcessInfo, 0)}
+	err := sr.supervisor.SignalAllProcesses(req, &args, &reply)
+	if err == nil {
+		json.NewEncoder(w).Encode(reply.AllProcessInfo)
+	} else {
+		r := map[string]interface{}{"success": false, "error": err.Error()}
+		json.NewEncoder(w).Encode(r)
+	}
 }
